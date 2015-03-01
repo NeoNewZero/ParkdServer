@@ -14,7 +14,7 @@ var sql = {
     'spotById': "SELECT * FROM spots WHERE"
     'userByEmail': "SELECT * FROM users WHERE email=?",
     'addUser': "INSERT INTO users (email, pass, salt) VALUES (?, ?, ?)",
-    'modifySpotData': "UPDATE spots SET (expiration, filled, long, lat) WHERE id=?",
+    'modifySpotData': "UPDATE spots SET expiration=?, filled=?, long=?, lat=? WHERE id=?",
     'changePassword': "UPDATE users SET pass=? WHERE id=?",
     'delUser': "DELETE FROM users WHERE id=?",
     'getOpenSpots': "SELECT * FROM spots WHERE occupant IS NULL"
@@ -195,10 +195,7 @@ httpPaths[apiRoot + "/getId"] = function(req, res) { // register endpoint
 
             // Get connection to database
             sqlPool.getConnection(function(err, con) {
-                // Query database for user object (because we need CapitalOne ID)
-                con.query(sql.userById, [post.userId], function(err, result) {
-                    if(result) // if object exists
-                    {
+
                         // copy over user sent data for readability
                         var timeBought = post.timeBought;
                         var lon = post.long;
@@ -206,10 +203,14 @@ httpPaths[apiRoot + "/getId"] = function(req, res) { // register endpoint
 
                         // Query database for spot object (needs user to send spot id to access)
                         con.query(sql.spotById, [post.spot], function(err, result) {
+
                             if(result) // if spot exists (it should exist as Android and iOS allow only a certain selection of spots)
                             {
-                                con.query(sql.addSpotData, [timeBought, true, lon, latt.spot], function(err, result) {
+                                con.query(sql.modifySpotData, [timeBought, true, lon, lat, result[0].id], function(err, result) {
+
                             }
+
+
 
                         var capOne = result[0].capitalOneId;
 
