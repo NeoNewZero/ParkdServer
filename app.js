@@ -11,8 +11,10 @@ var sqlPool = mysql.createPool(nconf.get("mysql"));
 // prepared sql statements
 var sql = {
     'userById': "SELECT * FROM users WHERE id=?",
+    'spotById': "SELECT * FROM spots WHERE"
     'userByEmail': "SELECT * FROM users WHERE email=?",
     'addUser': "INSERT INTO users (email, pass, salt) VALUES (?, ?, ?)",
+    'modifySpotData': "UPDATE spots SET (expiration, filled, long, lat) WHERE id=?",
     'changePassword': "UPDATE users SET pass=? WHERE id=?",
     'delUser': "DELETE FROM users WHERE id=?",
     'getOpenSpots': "SELECT * FROM spots WHERE occupant IS NULL"
@@ -75,10 +77,6 @@ httpPaths[apiRoot + "/login"] = function(req, res) { // login endpoint
                         {
                             sendError(res, "Wrong password");
                         }
-                    }
-                    else
-                    {
-                        sendError(res, "Email not found");
                     }
                 });
                 con.release();
@@ -179,6 +177,7 @@ httpPaths[apiRoot + "/getOpenSpots"] = function(req, res) { // register endpoint
                     }
 
                     sendJson(res, 200, output);
+
                 });
             con.release();
             });
@@ -187,6 +186,65 @@ httpPaths[apiRoot + "/getOpenSpots"] = function(req, res) { // register endpoint
     else
         badMethod(["POST"],  res);
 }
+
+httpPaths[apiRoot + "/getId"] = function(req, res) { // register endpoint
+    if (req.method == "POST")
+    {
+        req.on('data', function(data) { 
+            post = JSON.parse(""+data);
+
+            // Get connection to database
+            sqlPool.getConnection(function(err, con) {
+                // Query database for user object (because we need CapitalOne ID)
+                con.query(sql.userById, [post.userId], function(err, result) {
+                    if(result) // if object exists
+                    {
+                        // copy over user sent data for readability
+                        var timeBought = post.timeBought;
+                        var lon = post.long;
+                        var lat = post.lat;
+
+                        // Query database for spot object (needs user to send spot id to access)
+                        con.query(sql.spotById, [post.spot], function(err, result) {
+                            if(result) // if spot exists (it should exist as Android and iOS allow only a certain selection of spots)
+                            {
+                                con.query(sql.addSpotData, [timeBought, true, lon, latt.spot], function(err, result) {
+                            }
+
+                        var capOne = result[0].capitalOneId;
+
+                        res.writeHead(200);
+                        res.end();
+                    }
+                    else
+                });
+            con.release();
+            });
+        });
+    }
+    else
+        badMethod(["POST"],  res);
+}
+
+httpPaths[apiRoot + "/parkingStates"] = function(req, res) { // register endpoint
+    if (req.method == "POST")
+    {
+        req.on('data', function(data) { 
+            post = JSON.parse(""+data);
+
+            sqlPool.getConnection(function(err, con) {
+                con.query(sql.delUser, [post.id], function(err, result) {
+                        res.writeHead(200);
+                        res.end();
+                });
+            con.release();
+            });
+        });
+    }
+    else
+        badMethod(["POST"],  res);
+}
+
 
 // actual HTTP listenning
 var urlParser = require('url')
